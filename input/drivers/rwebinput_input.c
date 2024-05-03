@@ -24,6 +24,9 @@
 #include <encodings/crc32.h>
 #include <encodings/utf.h>
 
+#ifdef WEB_SCALING
+#include <emscripten/emscripten.h>
+#endif
 #include <emscripten/html5.h>
 
 #include "../input_keymaps.h"
@@ -265,10 +268,18 @@ static EM_BOOL rwebinput_mouse_cb(int event_type,
 
    uint8_t mask                      = 1 << mouse_event->button;
 
+#ifdef WEB_SCALING
+   double dpr = emscripten_get_device_pixel_ratio();
+   rwebinput->mouse.x                = (long)(mouse_event->targetX * dpr);
+   rwebinput->mouse.y                = (long)(mouse_event->targetY * dpr);
+   rwebinput->mouse.pending_delta_x += (long)(mouse_event->movementX * dpr);
+   rwebinput->mouse.pending_delta_y += (long)(mouse_event->movementY * dpr);
+#else
    rwebinput->mouse.x                = mouse_event->targetX;
    rwebinput->mouse.y                = mouse_event->targetY;
    rwebinput->mouse.pending_delta_x += mouse_event->movementX;
    rwebinput->mouse.pending_delta_y += mouse_event->movementY;
+#endif
 
    if (event_type ==  EMSCRIPTEN_EVENT_MOUSEDOWN)
       rwebinput->mouse.buttons |= mask;
@@ -283,8 +294,26 @@ static EM_BOOL rwebinput_wheel_cb(int event_type,
 {
    rwebinput_input_t       *rwebinput = (rwebinput_input_t*)user_data;
 
+#ifdef WEB_SCALING
+   double dpr = emscripten_get_device_pixel_ratio();
+   rwebinput->mouse.pending_scroll_x += wheel_event->deltaX * dpr;
+   rwebinput->mouse.pending_scroll_y += wheel_event->deltaY * dpr;
+#else
    rwebinput->mouse.pending_scroll_x += wheel_event->deltaX;
    rwebinput->mouse.pending_scroll_y += wheel_event->deltaY;
+#endif
+
+   return EM_TRUE;
+}
+
+static EM_BOOL rwebinput_pointerlockchange_cb(int event_type,
+   const EmscriptenPointerlockChangeEvent *pointerlock_change_event, void *user_data)
+{
+   if (!pointerlock_change_event->isActive)
+   {
+      retroarch_game_focus_off();
+      retroarch_grab_mouse_off();
+   }
 
    return EM_TRUE;
 }
@@ -358,6 +387,15 @@ static void *rwebinput_input_init(const char *joypad_driver)
    {
       RARCH_ERR(
          "[EMSCRIPTEN/INPUT] failed to create wheel callback: %d\n", r);
+   }
+
+   r = emscripten_set_pointerlockchange_callback(
+         EMSCRIPTEN_EVENT_TARGET_DOCUMENT, rwebinput, false,
+         rwebinput_pointerlockchange_cb);
+   if (r != EMSCRIPTEN_RESULT_SUCCESS)
+   {
+      RARCH_ERR(
+         "[EMSCRIPTEN/INPUT] failed to create pointerlockchange callback: %d\n", r);
    }
 
    input_keymaps_init_keyboard_lut(rarch_key_map_rwebinput);
@@ -537,7 +575,7 @@ static int16_t rwebinput_input_state(
             vp.full_height              = 0;
 
             if (!(video_driver_translate_coord_viewport_wrap(
-                        &vp, mouse->x, mouse->x,
+                        &vp, mouse->x, mouse->y,
                         &res_x, &res_y, &res_screen_x, &res_screen_y)))
                return 0;
 
@@ -628,8 +666,10 @@ static void rwebinput_process_keyboard_events(
       character = '\t';
 
    if (translated_keycode != RETROK_UNKNOWN)
+   {
       input_keyboard_event(keydown, translated_keycode, character, mod,
          RETRO_DEVICE_KEYBOARD);
+   }
    
    if (     translated_keycode  < RETROK_LAST 
          && translated_keycode != RETROK_UNKNOWN)

@@ -11077,6 +11077,10 @@ static bool command_set_shader(const char *arg)
 
    return retroarch_apply_shader(type, arg, true);
 }
+
+bool retroarch_set_shader(const char *path) {
+	return command_set_shader(path);
+}
 #endif
 
 /* TRANSLATION */
@@ -13395,6 +13399,14 @@ static bool input_driver_ungrab_mouse(struct rarch_state *p_rarch)
    return true;
 }
 
+void retroarch_grab_mouse_off(void)
+{
+   struct rarch_state *p_rarch = &rarch_st;
+
+   if (p_rarch->input_driver_grab_mouse_state)
+      command_event(CMD_EVENT_GRAB_MOUSE_TOGGLE, NULL);
+}
+
 static void command_event_reinit(struct rarch_state *p_rarch,
       const int flags)
 {
@@ -13507,6 +13519,17 @@ static void retroarch_game_focus_free(struct rarch_state *p_rarch)
    p_rarch->game_focus_state.core_requested = false;
 }
 
+void retroarch_game_focus_off(void)
+{
+   struct rarch_state *p_rarch = &rarch_st;
+
+   if (p_rarch->game_focus_state.enabled)
+   {
+      enum input_game_focus_cmd_type game_focus_cmd = GAME_FOCUS_CMD_OFF;
+      command_event(CMD_EVENT_GAME_FOCUS_TOGGLE, &game_focus_cmd);
+   }
+}
+
 static void retroarch_system_info_free(struct rarch_state *p_rarch)
 {
    rarch_system_info_t        *sys_info   = &p_rarch->runloop_system;
@@ -13576,6 +13599,9 @@ bool command_event(enum event_command cmd, void *data)
 
    switch (cmd)
    {
+      case CMD_EVENT_RELOAD_CONFIG:
+         config_load(&p_rarch->g_extern);
+         break;
       case CMD_EVENT_SAVE_FILES:
          event_save_files(p_rarch->rarch_use_sram);
          break;
@@ -16639,9 +16665,14 @@ static bool dynamic_request_hw_context(enum retro_hw_context_type type,
 #endif
       case RETRO_HW_CONTEXT_OPENGL:
       case RETRO_HW_CONTEXT_OPENGL_CORE:
+#ifdef HAVE_REGAL
+         RARCH_LOG("Requesting OpenGL context (Regal).\n");
+         break;
+#else
          RARCH_ERR("Requesting OpenGL context, but RetroArch "
                "is compiled against OpenGLES. Cannot use HW context.\n");
          return false;
+#endif
 
 #elif defined(HAVE_OPENGL) || defined(HAVE_OPENGL_CORE)
       case RETRO_HW_CONTEXT_OPENGLES2:

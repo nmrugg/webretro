@@ -743,6 +743,8 @@ static void *ozone_init(void **userdata, bool video_is_threaded)
    ozone->animations.left_thumbnail_alpha       = 1.0f;
    ozone->force_metadata_display                = false;
 
+   ozone->minimal_assets = settings->bools.menu_minimal_assets;
+
    gfx_thumbnail_set_stream_delay(-1.0f);
    gfx_thumbnail_set_fade_duration(-1.0f);
    gfx_thumbnail_set_fade_missing(false);
@@ -1244,7 +1246,7 @@ static void ozone_context_reset(void *data, bool is_threaded)
          else
          {
 #endif
-            if (!gfx_display_reset_textures_list(filename, ozone->png_path, &ozone->textures[i], TEXTURE_FILTER_MIPMAP_LINEAR, NULL, NULL))
+            if (!gfx_display_reset_textures_list(filename, ozone->png_path, &ozone->textures[i], TEXTURE_FILTER_MIPMAP_LINEAR, NULL, NULL) && !ozone->minimal_assets)
                ozone->has_all_assets = false;
 #if 0
          }
@@ -1263,14 +1265,15 @@ static void ozone_context_reset(void *data, bool is_threaded)
 
          if (!gfx_display_reset_textures_list(filename, ozone->tab_path, &ozone->tab_textures[i], TEXTURE_FILTER_MIPMAP_LINEAR, NULL, NULL))
          {
-            ozone->has_all_assets = false;
+            if (!ozone->minimal_assets)
+               ozone->has_all_assets = false;
             RARCH_WARN("[OZONE] Asset missing: %s%s%s\n", ozone->tab_path,
                   PATH_DEFAULT_SLASH(), filename);
          }
       }
 
       /* Theme textures */
-      if (!ozone_reset_theme_textures(ozone))
+      if (!ozone_reset_theme_textures(ozone) && !ozone->minimal_assets)
          ozone->has_all_assets = false;
 
       /* Icons textures init */
@@ -1278,7 +1281,8 @@ static void ozone_context_reset(void *data, bool is_threaded)
       {
          if (!gfx_display_reset_textures_list(ozone_entries_icon_texture_path(i), ozone->icons_path, &ozone->icons_textures[i], TEXTURE_FILTER_MIPMAP_LINEAR, NULL, NULL))
          {
-            ozone->has_all_assets = false;
+            if (!ozone->minimal_assets)
+               ozone->has_all_assets = false;
             RARCH_WARN("[OZONE] Asset missing: %s%s%s\n", ozone->icons_path,
                   PATH_DEFAULT_SLASH(), ozone_entries_icon_texture_path(i));
          }
@@ -1307,8 +1311,10 @@ static void ozone_context_reset(void *data, bool is_threaded)
       ozone->animations.list_alpha     = 1.0f;
 
       /* Missing assets message */
+#ifndef NO_MISSING_ASSET_WARNING
       if (!ozone->has_all_assets)
          runloop_msg_queue_push(msg_hash_to_str(MSG_MISSING_ASSETS), 1, 256, false, NULL, MESSAGE_QUEUE_ICON_DEFAULT, MESSAGE_QUEUE_CATEGORY_INFO);
+#endif
 
       /* Thumbnails */
       ozone_update_thumbnail_image(ozone);

@@ -46,9 +46,14 @@
 #include "../../tasks/tasks_internal.h"
 #include "../../file_path_special.h"
 #include "../../paths.h"
+#include "../../cheat_manager.h"
 
 void dummyErrnoCodes(void);
 void emscripten_mainloop(void);
+
+//// begin exported functions
+
+// saves and states
 
 void cmd_savefiles(void)
 {
@@ -65,10 +70,110 @@ void cmd_load_state(void)
    command_event(CMD_EVENT_LOAD_STATE, NULL);
 }
 
+void cmd_undo_save_state(void)
+{
+   command_event(CMD_EVENT_UNDO_SAVE_STATE, NULL);
+}
+
+void cmd_undo_load_state(void)
+{
+   command_event(CMD_EVENT_UNDO_LOAD_STATE, NULL);
+}
+
+// misc
+
 void cmd_take_screenshot(void)
 {
    command_event(CMD_EVENT_TAKE_SCREENSHOT, NULL);
 }
+
+void cmd_toggle_menu(void)
+{
+   command_event(CMD_EVENT_MENU_TOGGLE, NULL);
+}
+
+void cmd_reload_config(void)
+{
+   command_event(CMD_EVENT_RELOAD_CONFIG, NULL);
+}
+
+void cmd_toggle_grab_mouse(void)
+{
+   command_event(CMD_EVENT_GRAB_MOUSE_TOGGLE, NULL);
+}
+
+void cmd_toggle_game_focus(void)
+{
+   command_event(CMD_EVENT_GAME_FOCUS_TOGGLE, NULL);
+}
+
+void cmd_reset(void)
+{
+   command_event(CMD_EVENT_RESET, NULL);
+}
+
+void cmd_toggle_pause(void)
+{
+   command_event(CMD_EVENT_PAUSE_TOGGLE, NULL);
+}
+
+void cmd_pause(void)
+{
+   command_event(CMD_EVENT_PAUSE, NULL);
+}
+
+void cmd_unpause(void)
+{
+   command_event(CMD_EVENT_UNPAUSE, NULL);
+}
+
+void cmd_set_volume(float volume) {
+	// TODO: update retroarch
+}
+
+bool cmd_set_shader(const char *path)
+{
+   return retroarch_set_shader(path);
+}
+
+// cheats
+
+void cmd_cheat_set_code(unsigned index, const char *str)
+{
+	cheat_manager_set_code(index, str);
+}
+
+const char *cmd_cheat_get_code(unsigned index)
+{
+	return cheat_manager_get_code(index);
+}
+
+void cmd_cheat_toggle_index(bool apply_cheats_after_toggle, unsigned index)
+{
+	cheat_manager_toggle_index(apply_cheats_after_toggle, index);
+}
+
+bool cmd_cheat_get_code_state(unsigned index)
+{
+	return cheat_manager_get_code_state(index);
+}
+
+bool cmd_cheat_realloc(unsigned new_size)
+{
+	return cheat_manager_realloc(new_size, CHEAT_HANDLER_TYPE_EMU);
+}
+
+unsigned cmd_cheat_get_size(void)
+{
+	return cheat_manager_get_size();
+}
+
+void cmd_cheat_apply_cheats(void)
+{
+	cheat_manager_apply_cheats();
+}
+
+//// end exported functions
 
 static void frontend_emscripten_get_env(int *argc, char *argv[],
       void *args, void *params_data)
@@ -164,9 +269,10 @@ static void frontend_emscripten_get_env(int *argc, char *argv[],
 int main(int argc, char *argv[])
 {
    dummyErrnoCodes();
-
+#ifndef NO_INITIAL_CANVAS_RESIZE
    emscripten_set_canvas_element_size("#canvas", 800, 600);
    emscripten_set_element_css_size("#canvas", 800.0, 600.0);
+#endif
    emscripten_set_main_loop(emscripten_mainloop, 0, 0);
    rarch_main(argc, argv, NULL);
 

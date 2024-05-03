@@ -396,6 +396,14 @@ void rarch_favorites_init(void);
 
 void rarch_favorites_deinit(void);
 
+void retroarch_grab_mouse_off(void);
+
+void retroarch_game_focus_off(void);
+
+#if defined(HAVE_CG) || defined(HAVE_GLSL) || defined(HAVE_SLANG) || defined(HAVE_HLSL)
+bool retroarch_set_shader(const char *path);
+#endif
+
 /* Audio */
 
 #ifdef HAVE_AUDIOMIXER

@@ -556,6 +556,7 @@ typedef struct settings
       bool notification_show_refresh_rate;
       bool menu_widget_scale_auto;
       bool menu_show_start_screen;
+      bool menu_minimal_assets;
       bool menu_pause_libretro;
       bool menu_savestate_resume;
       bool menu_insert_disk_resume;

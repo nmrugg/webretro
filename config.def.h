@@ -1151,6 +1151,9 @@ static const int default_content_favorites_size = 200;
 /* Show Menu start-up screen on boot. */
 #define DEFAULT_MENU_SHOW_START_SCREEN true
 
+/* Working with a limited set of assets */
+#define DEFAULT_MENU_MINIMAL_ASSETS false
+
 /* Default scale factor for non-frambuffer-based display
  * drivers and display widgets */
 #if defined(VITA)

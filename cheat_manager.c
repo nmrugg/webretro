@@ -120,7 +120,7 @@ void cheat_manager_set_code(unsigned i, const char *str)
       return;
 
    if (!string_is_empty(str))
-      strcpy(cheat_st->cheats[i].code, str);
+      cheat_st->cheats[i].code = strdup(str);
 
    cheat_st->cheats[i].state = true;
 }

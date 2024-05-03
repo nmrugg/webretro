@@ -292,6 +292,8 @@ struct ozone_handle
 
    bool force_metadata_display;
 
+   bool minimal_assets;
+
    bool is_db_manager_list;
    bool is_file_list;
    bool is_quick_menu;
