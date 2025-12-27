@@ -121,6 +121,7 @@ ifneq ($(PTHREAD), 0)
    CFLAGS += -pthread
    CXXFLAGS += -pthread
    LDFLAGS += -pthread -s PTHREAD_POOL_SIZE=4
+   LDFLAGS += -s ALLOW_MEMORY_GROWTH=1 -s INITIAL_MEMORY=536870912 -s MAXIMUM_MEMORY=2147483648 -Wno-pthreads-mem-growth
 else
    LDFLAGS += -s ALLOW_MEMORY_GROWTH=1
 endif
