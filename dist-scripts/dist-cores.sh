@@ -192,6 +192,8 @@ for f in `ls -v *_${platform}.${EXT}`; do
    elif [ $name = "dosbox" ] ; then
       async=0
       pthread=1
+      stack_mem=268435456
+      heap_mem=536870912
    elif [ $name = "scummvm" ] ; then
       async=1
       pthread=0
