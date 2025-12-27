@@ -18534,7 +18534,9 @@ static bool rarch_environment_cb(unsigned cmd, void *data)
 
 
       default:
+        #ifdef DEBUG
          RARCH_LOG("[Environ]: UNSUPPORTED (#%u).\n", cmd);
+        #endif
          return false;
    }
 
