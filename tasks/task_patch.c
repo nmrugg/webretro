@@ -25,6 +25,7 @@
 #include <boolean.h>
 
 #include <compat/msvc.h>
+#include <compat/strl.h>
 #include <file/file_path.h>
 #include <streams/file_stream.h>
 #include <string/stdstring.h>
@@ -619,7 +620,7 @@ static bool apply_patch_content(uint8_t **buf,
    uint64_t target_size     = 0;
    uint8_t *patched_content = NULL;
 
-   RARCH_LOG("Found %s file in \"%s\", attempting to patch ...\n",
+   RARCH_LOG("[Patch] Found %s file in \"%s\", attempting to patch ...\n",
          patch_desc, patch_path);
 
    if ((err = func((const uint8_t*)patch_data, patch_size, ret_buf,
@@ -630,7 +631,7 @@ static bool apply_patch_content(uint8_t **buf,
       *size = target_size;
    }
    else
-      RARCH_ERR("%s %s: %s #%u\n",
+      RARCH_ERR("[Patch] %s %s: %s #%u\n",
             msg_hash_to_str(MSG_FAILED_TO_PATCH),
             patch_desc,
             msg_hash_to_str(MSG_ERROR),
@@ -643,7 +644,7 @@ static bool try_bps_patch(bool allow_bps, const char *name_bps,
       uint8_t **buf, ssize_t *size)
 {
    if (     allow_bps 
-         && !string_is_empty(name_bps)
+         && name_bps
          && path_is_valid(name_bps)
       )
    {
@@ -670,7 +671,7 @@ static bool try_ups_patch(bool allow_ups, const char *name_ups,
       uint8_t **buf, ssize_t *size)
 {
    if (     allow_ups
-         && !string_is_empty(name_ups)
+         && name_ups
          && path_is_valid(name_ups)
       )
    {
@@ -696,7 +697,7 @@ static bool try_ips_patch(bool allow_ips,
       const char *name_ips, uint8_t **buf, ssize_t *size)
 {
    if (     allow_ips 
-         && !string_is_empty(name_ips)
+         && name_ips
          && path_is_valid(name_ips)
       )
    {
@@ -745,19 +746,73 @@ bool patch_content(
          + (unsigned)is_bps_pref
          + (unsigned)is_ups_pref > 1)
    {
-      RARCH_WARN("%s\n",
+      RARCH_WARN("[Patch] %s\n",
             msg_hash_to_str(MSG_SEVERAL_PATCHES_ARE_EXPLICITLY_DEFINED));
       return false;
    }
 
-   if (     !try_ips_patch(allow_ips, name_ips, buf, size)
-         && !try_bps_patch(allow_bps, name_bps, buf, size)
-         && !try_ups_patch(allow_ups, name_ups, buf, size))
+   /* Attempt to apply first (non-indexed) patch */
+   if (     try_ips_patch(allow_ips, name_ips, buf, size)
+         || try_bps_patch(allow_bps, name_bps, buf, size)
+         || try_ups_patch(allow_ups, name_ups, buf, size))
    {
-      RARCH_LOG("%s\n",
-            msg_hash_to_str(MSG_DID_NOT_FIND_A_VALID_CONTENT_PATCH));
-      return false;
+      /* A patch has been found. Now attempt to apply
+       * any additional 'indexed' patch files */
+      size_t name_ips_len       = strlen(name_ips);
+      size_t name_bps_len       = strlen(name_bps);
+      size_t name_ups_len       = strlen(name_ups);
+      char *name_ips_indexed    = (char*)malloc((name_ips_len + 2) * sizeof(char));
+      char *name_bps_indexed    = (char*)malloc((name_bps_len + 2) * sizeof(char));
+      char *name_ups_indexed    = (char*)malloc((name_ups_len + 2) * sizeof(char));
+      /* First patch already applied -> index
+       * for subsequent patches starts at 1 */
+      size_t patch_index     = 1;
+
+      strlcpy(name_ips_indexed, name_ips, (name_ips_len + 1) * sizeof(char));
+      strlcpy(name_bps_indexed, name_bps, (name_bps_len + 1) * sizeof(char));
+      strlcpy(name_ups_indexed, name_ups, (name_ups_len + 1) * sizeof(char));
+
+      /* Ensure that we NUL terminate *after* the
+       * index character */
+      name_ips_indexed[name_ips_len + 1] = '\0';
+      name_bps_indexed[name_bps_len + 1] = '\0';
+      name_ups_indexed[name_ups_len + 1] = '\0';
+
+      /* try to patch "*.ipsX" */
+      while (patch_index < 10)
+      {
+         /* Add index character to end of patch
+          * file path string
+          * > Note: This technique only works for
+          *   index values up to 9 (i.e. single
+          *   digit numbers)
+          * > If we want to support more than 10
+          *   patches in total, will have to replace
+          *   this with an snprintf() implementation
+          *   (which will have significantly higher
+          *   performance overheads) */
+         char index_char = '0' + patch_index;
+
+         name_ips_indexed[name_ips_len] = index_char;
+         name_bps_indexed[name_bps_len] = index_char;
+         name_ups_indexed[name_ups_len] = index_char;
+
+         if (     !try_ips_patch(allow_ips, name_ips_indexed, buf, size)
+               && !try_bps_patch(allow_bps, name_bps_indexed, buf, size)
+               && !try_ups_patch(allow_ups, name_ups_indexed, buf, size))
+            break;
+
+         patch_index++;
+      }
+
+      free(name_ips_indexed);
+      free(name_bps_indexed);
+      free(name_ups_indexed);
+
+      return true;
    }
 
-   return true;
+   RARCH_LOG("[Patch] %s\n",
+         msg_hash_to_str(MSG_DID_NOT_FIND_A_VALID_CONTENT_PATCH));
+   return false;
 }
