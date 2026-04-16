@@ -62,7 +62,9 @@
 #include "../cheat_manager.h"
 #endif
 
-#if defined(HAVE_LIBNX) || defined(_3DS)
+#ifdef __EMSCRIPTEN__
+#define SAVE_STATE_CHUNK (1024 * 1024) /* 1 MB for WASM */
+#elif defined(HAVE_LIBNX) || defined(_3DS)
 #define SAVE_STATE_CHUNK 4096 * 10
 #else
 #define SAVE_STATE_CHUNK 4096
