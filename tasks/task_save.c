@@ -63,7 +63,7 @@
 #endif
 
 #ifdef __EMSCRIPTEN__
-#define SAVE_STATE_CHUNK (1024 * 1024) /* 1 MB for WASM */
+#define SAVE_STATE_CHUNK (1024 * 1024 * 8) /* 8 MB for WASM */
 #elif defined(HAVE_LIBNX) || defined(_3DS)
 #define SAVE_STATE_CHUNK 4096 * 10
 #else
