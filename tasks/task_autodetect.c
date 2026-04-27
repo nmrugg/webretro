@@ -31,6 +31,10 @@
 #include "../retroarch.h"
 #include "../input/input_driver.h"
 
+#ifdef __EMSCRIPTEN__
+#include "../verbosity.h"
+#endif
+
 #include "tasks_internal.h"
 #ifdef HAVE_BLISSBOX
 #include "../input/include/blissbox.h"
@@ -534,6 +538,12 @@ static void input_autoconfigure_connect_handler(retro_task_t *task)
    {
       if (match_found)
       {
+#ifdef __EMSCRIPTEN__
+            RARCH_LOG("%s %s #%u\n",
+                  device_display_name,
+                  msg_hash_to_str(MSG_DEVICE_CONFIGURED_IN_PORT),
+                  autoconfig_handle->port + 1);
+#endif
          /* A valid autoconfig was applied */
          if (!autoconfig_handle->suppress_notifcations)
             snprintf(task_title, sizeof(task_title), "%s %s #%u",
