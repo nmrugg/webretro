@@ -13601,6 +13601,24 @@ bool command_event(enum event_command cmd, void *data)
    {
       case CMD_EVENT_RELOAD_CONFIG:
          config_load(&p_rarch->g_extern);
+         /* Re-initialize joypad driver to apply new input driver settings */
+         if (p_rarch->joypad)
+         {
+            if (p_rarch->joypad->destroy)
+               p_rarch->joypad->destroy();
+            p_rarch->joypad = NULL;
+         }
+#ifdef HAVE_MFI
+         if (p_rarch->sec_joypad)
+         {
+            if (p_rarch->sec_joypad->destroy)
+               p_rarch->sec_joypad->destroy();
+            p_rarch->sec_joypad = NULL;
+         }
+#endif
+         input_driver_init_joypads();
+         /* Notify core about controller device changes */
+         command_event_init_controllers(p_rarch);
          break;
       case CMD_EVENT_SAVE_FILES:
          event_save_files(p_rarch->rarch_use_sram);
